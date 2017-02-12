@@ -214,6 +214,7 @@ LRESULT CALLBACK KWWin32APIBase::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 		{
 			/*描画要求時*/
 			pApp->draw();
+			ValidateRect(hwnd, NULL); /*更新リージョン削除*/
 		}
 		result = 0;
 		break;
@@ -223,7 +224,7 @@ LRESULT CALLBACK KWWin32APIBase::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 			auto width = static_cast<UINT>(LOWORD(lParam)); //幅
 			auto height = static_cast<UINT>(HIWORD(lParam)); //高さ
 			pApp->resize(width, height);
-			ValidateRect(hwnd, NULL); /*更新リージョン削除*/
+			InvalidateRect(hwnd, NULL, FALSE); /*更新リージョン設定（再描画を要求）*/
 		}
 		result = 0;
 		break;
