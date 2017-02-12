@@ -17,8 +17,10 @@ public:
 		ss << "wnd_class_" << unique_number++;
 		wndclass_name = ss.str();
 
+		pre_initialize();
 		PrepareWindowClass();
 		EnableWindow(SW_SHOWNORMAL);
+		post_initialize();
 
 		LPRECT rect;
 		GetClientRect(hwnd, rect);
@@ -36,8 +38,10 @@ public:
 		ss << "wnd_class_" << unique_number++;
 		wndclass_name = ss.str();
 
+		pre_initialize();
 		PrepareWindowClass();
 		EnableWindow(nCmd);
+		post_initialize();
 
 		RECT rect;
 		GetWindowRect(hwnd, &rect);
@@ -55,8 +59,10 @@ public:
 		ss << "wnd_class_" << unique_number++;
 		wndclass_name = ss.str();
 
+		pre_initialize();
 		PrepareWindowClass();
 		EnableWindow(SW_SHOWNORMAL);
+		post_initialize();
 	}
 
 	KWWin32APIBase(HINSTANCE hInst, std::string title, int nCmd, int W, int H) :
@@ -69,21 +75,19 @@ public:
 		ss << "wnd_class_" << unique_number++;
 		wndclass_name = ss.str();
 
+		pre_initialize();
 		PrepareWindowClass();
 		EnableWindow(nCmd);
+		post_initialize();
 	}
 
 	virtual ~KWWin32APIBase() {}
 
 	void Run(int loop_type) {
 		if (loop_type == 0)
-		{
 			MessageLoop();
-		}
 		else
-		{
 			MainLoop();
-		}
 	}
 
 protected:
@@ -92,14 +96,17 @@ protected:
 	HINSTANCE hinstance;
 	HWND hwnd;
 
-	virtual void begin() {}
-	virtual void draw() {}
-	virtual void resize(int W, int H)
+	virtual void pre_initialize() {} /*ウインドウ作成前*/
+	virtual void post_initialize() {} /*ウインドウ作成後*/
+	virtual void draw() {} /*描画（WM_PAINT）*/
+	virtual void resize(int W, int H) /*リサイズ（WM_SIZE）*/
 	{
 		width = W;
 		height = H;
 	}
-	virtual void end() {}
+	virtual void pre_finish() {} /*ウインドウ破棄（WM_DESTOROY）*/
+	virtual void post_finish() {} /*終了（WM_QUIT）*/
+	virtual void update() {} /*更新（メインループ内非メッセージ処理）*/
 
 private:
 	static int unique_number;
@@ -153,7 +160,10 @@ private:
 		HRESULT hr;
 
 		while ((hr = GetMessage(&msg, NULL, 0, 0)) != 0) {
-			if (hr == -1) break;
+			if (hr == -1) {
+				post_finish();
+				break;
+			}
 			TranslateMessage(&msg); /*メッセージの変換*/
 			DispatchMessage(&msg); /*メッセージの処理*/
 		}
@@ -166,11 +176,15 @@ private:
 		{
 			if (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE)) {
 				BOOL ret = GetMessage(&msg, NULL, 0, 0);
-				if (ret == WM_QUIT || ret == ERROR) break;
+				if (ret == WM_QUIT || ret == ERROR) {
+					post_finish();
+					break;
+				}
 				TranslateMessage(&msg);
 				DispatchMessage(&msg);
 			}
 			else {
+				update();
 				InvalidateRect(hwnd, NULL, false);
 				UpdateWindow(hwnd);
 				Sleep(1);
@@ -231,7 +245,7 @@ LRESULT CALLBACK KWWin32APIBase::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 		case WM_DESTROY:
 		{
 			/*ウインドウ破棄時*/
-			pApp->end();
+			pApp->pre_finish();
 			PostQuitMessage(0);/*スレッドへ終了要求を伝達*/
 		}
 		result = 1;
